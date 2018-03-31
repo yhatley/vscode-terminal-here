@@ -31,6 +31,10 @@ export function activate(context: vscode.ExtensionContext) {
                 // c:\workspace\foo to /mnt/c/workspace/foo
                 dir = dir.replace(/(\w):/, '/mnt/$1').replace(/\\/g, '/')
                 break;
+            case "sh":
+                // c:\workspace\foo to /c/workspace/foo
+                dir = dir.replace(/(\w):/, '/$1').replace(/\\/g, '/')
+                break;
             case "cmd":
                 // send 1st two characters (drive letter and colon) to the terminal
                 // so that drive letter is updated before running cd
@@ -57,14 +61,19 @@ function kindOfShell(terminalSettings) {
         return undefined;
     }
 
-    // Detect WSL bash according to the implementation of VS Code terminal.
+    // Detect shell according to the implementation of VS Code terminal.
     // For more details, refer to https://goo.gl/AuwULb
     const is32ProcessOn64Windows = process.env.hasOwnProperty('PROCESSOR_ARCHITEW6432');
     const system32 = is32ProcessOn64Windows ? 'Sysnative' : 'System32';
-    var shellKindByPath = {}
-    shellKindByPath[path.join(process.env.windir, system32, 'bash.exe').toLowerCase()] = "wslbash";
-    shellKindByPath[path.join(process.env.windir, system32, 'cmd.exe').toLowerCase()] = "cmd";
-
-    // %windir% can give WINDOWS instead of Windows
-    return shellKindByPath[windowsShellPath.toLowerCase()]
+    switch(windowsShellPath.toLowerCase()) {
+        case  path.join(process.env.windir, system32, 'bash.exe').toLowerCase():
+            return "wslbash"
+        case path.join(process.env.windir, system32, 'cmd.exe').toLowerCase():
+            return "cmd"
+        case path.join(process.env.windir, system32, 'WindowsPowerShell\\v1.0\\powershell.exe').toLowerCase():
+            return "powershell"
+        default:
+            // git bash
+            return "sh"
+    }
 }
